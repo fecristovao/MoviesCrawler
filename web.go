@@ -17,7 +17,7 @@ func (r WebRequest) Get(Uri string) string {
 	}
 
 	client := &http.Client{
-		Timeout: time.Second * 60,
+		Timeout: time.Second * 120,
 	}
 
 	resp, err := client.Do(req)

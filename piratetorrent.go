@@ -72,15 +72,15 @@ func (_ PirateTorrent) GetDownloadLinks(Link string) FoundMagnetLinks {
 			magnetLink := magnetRegex.FindStringSubmatch(magnetHtml)[1]
 
 			magnetRegex = regexp.MustCompile(`magnet:.*?dn=(.+?)(;|&amp|&)`)
-			
+
 			magnetName := magnetRegex.FindStringSubmatch(magnetLink)
 			var magnetTitle string
-			if magnetName != nil{
+			if magnetName != nil {
 				magnetTitle, _ = url.QueryUnescape(magnetName[1])
 				magnetTitle = strings.Trim(magnetTitle, " ")
 			} else {
 				magnetTitle = match[1]
-			}	
+			}
 
 			mutex.Lock()
 			(*foundLinks) = append((*foundLinks), DownloadLink{magnetTitle, magnetLink})

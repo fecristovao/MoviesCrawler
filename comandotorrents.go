@@ -53,11 +53,16 @@ func (_ ComandoTorrents) GetDownloadLinks(Link string) FoundMagnetLinks {
 
 			magnetRegex = regexp.MustCompile(`magnet:.*?dn=(.+?)(;|&amp|&)`)
 			magnetName := magnetRegex.FindStringSubmatch(magnetLink)
-			magnetTitle, _ := url.QueryUnescape(magnetName[1])
-			magnetTitle = strings.Trim(magnetTitle, " ")
+			var magnetTitle string
+			if magnetName != nil {
+				magnetTitle, _ = url.QueryUnescape(magnetName[1])
+				magnetTitle = strings.Trim(magnetTitle, " ")
+			} else {
+				magnetTitle = "Torrent"
+			}
 
 			mutex.Lock()
-			(*foundLinks) = append((*foundLinks), DownloadLink{magnetTitle, magnetLink})
+			(*foundLinks) = append((*foundLinks), DownloadLink{Title: magnetTitle, MagnetLink: magnetLink})
 			mutex.Unlock()
 		}(&wg, &foundLinks, mutex)
 	}
