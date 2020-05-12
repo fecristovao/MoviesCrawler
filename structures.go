@@ -1,7 +1,5 @@
 package moviescrawler
 
-import "fmt"
-
 type Movie struct {
 	Title, Cover, Link string
 }
@@ -20,6 +18,6 @@ type FoundMovies []Movie
 
 func recoveryPanic() {
 	if pan := recover(); pan != nil {
-		fmt.Printf("Panic: %v\n", pan)
+		//fmt.Printf("Panic: %v\n", pan)
 	}
 }

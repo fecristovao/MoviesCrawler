@@ -1,7 +1,6 @@
 package moviescrawler
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -28,13 +27,11 @@ func SearchAll(servico Crawler, Term string) FoundMovies {
 
 	mutex := &sync.Mutex{}
 	maxPage := servico.GetNumberOfPages(Term)
-	fmt.Println(maxPage)
 	for i := 1; i <= maxPage; i++ {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, listMovies *FoundMovies, mutex *sync.Mutex, term string, page int) {
 			defer wg.Done()
 			service := servico.SearchMovie(term, page)
-			fmt.Printf("Acabei pag: %d\n", page)
 			if service != nil {
 				mutex.Lock()
 				(*listMovies) = append((*listMovies), service...)
