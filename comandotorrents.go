@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	ht "golang.org/x/net/html"
 )
 
 type ComandoTorrents struct{}
@@ -23,7 +24,7 @@ func (_ ComandoTorrents) SearchMovie(Term string, Page int) FoundMovies {
 	matches := regex.FindAllStringSubmatch(string(html), -1)
 	var found FoundMovies
 	for _, match := range matches {
-		found = append(found, Movie{match[2], match[3], match[1]})
+		found = append(found, Movie{ht.UnescapeString(match[2]), match[3], match[1]})
 	}
 	return found
 }
@@ -33,38 +34,31 @@ func (_ ComandoTorrents) GetDownloadLinks(Link string) FoundMagnetLinks {
 	headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36 OPR/68.0.3618.63"
 	html := WebRequest{headers, nil}.Get(Link)
 
-	regex := regexp.MustCompile(`<a rel="nofollow" target="_blank" href=".*id=(.+?)&ref=(.+?)&titulo=(.+?)"`)
+	regex := regexp.MustCompile(`<p style="text-align: center;"><(?:strong|b)>(.*?)(?:<|\[|\|).*?\n.*href=".*?id=(.*?)&ref=(.*?)&titulo=(.*?)"`)
 	matches := regex.FindAllStringSubmatch(string(html), -1)
 
 	var foundLinks FoundMagnetLinks
 	var wg sync.WaitGroup
 	mutex := &sync.Mutex{}
 	for _, match := range matches {
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, foundLinks *FoundMagnetLinks, mutex *sync.Mutex) {
-			defer wg.Done()
-			magnetHeader := make(map[string]string)
-			magnetHeader["Cookie"] = "nome=" + match[3] + "; ref=" + match[2] + "; idcriptografada=" + match[1]
-			magnetHeader["Referer"] = "https://www.adssuper.com"
+		
+		if !strings.Contains(match[1], "reprodução") {
+			wg.Add(1)
+			go func(wg *sync.WaitGroup, foundLinks *FoundMagnetLinks, mutex *sync.Mutex) {
+				defer wg.Done()
+				magnetHeader := make(map[string]string)
+				magnetHeader["Cookie"] = "nome=" + match[4] + "; ref=" + match[3] + "; idcriptografada=" + match[2]
+				magnetHeader["Referer"] = "https://www.adssuper.com"
 
-			magnetHtml := WebRequest{magnetHeader, nil}.Get("https://www.mastercuriosidadesbr.com/resenha-sobre-o-filme-malevola-2-dona-do-mal-parte-final/")
-			magnetRegex := regexp.MustCompile(`(?m)href="(magnet:.+?)"`)
-			magnetLink := magnetRegex.FindStringSubmatch(magnetHtml)[1]
+				magnetHtml := WebRequest{magnetHeader, nil}.Get("https://www.mastercuriosidadesbr.com/resenha-sobre-o-filme-malevola-2-dona-do-mal-parte-final/")
+				magnetRegex := regexp.MustCompile(`(?m)href="(magnet:.+?)"`)
+				magnetLink := magnetRegex.FindStringSubmatch(magnetHtml)[1]
 
-			magnetRegex = regexp.MustCompile(`magnet:.*?dn=(.+?)(;|&amp|&)`)
-			magnetName := magnetRegex.FindStringSubmatch(magnetLink)
-			var magnetTitle string
-			if magnetName != nil {
-				magnetTitle, _ = url.QueryUnescape(magnetName[1])
-				magnetTitle = strings.Trim(magnetTitle, " ")
-			} else {
-				magnetTitle = "Torrent"
-			}
-
-			mutex.Lock()
-			(*foundLinks) = append((*foundLinks), DownloadLink{Title: magnetTitle, MagnetLink: magnetLink})
-			mutex.Unlock()
-		}(&wg, &foundLinks, mutex)
+				mutex.Lock()
+				(*foundLinks) = append((*foundLinks), DownloadLink{Title: ht.UnescapeString(strings.Trim(match[1], " ")), MagnetLink: ht.UnescapeString(magnetLink)})
+				mutex.Unlock()
+			}(&wg, &foundLinks, mutex)
+		}
 	}
 
 	wg.Wait()

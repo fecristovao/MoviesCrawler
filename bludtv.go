@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	ht "golang.org/x/net/html"
+	
 )
 
 type BludTV struct{}
@@ -19,7 +21,7 @@ func (_ BludTV) SearchMovie(Term string, Page int) FoundMovies {
 
 	var movies FoundMovies
 	for _, match := range matches {
-		movies = append(movies, Movie{Title: match[2], Cover: match[3], Link: match[1]})
+		movies = append(movies, Movie{Title: ht.UnescapeString(match[2]), Cover: match[3], Link: match[1]})
 	}
 
 	return movies
@@ -56,13 +58,13 @@ func (_ BludTV) GetDownloadLinks(Link string) FoundMagnetLinks {
 
 	html := request.Get(Link)
 
-	regex := regexp.MustCompile(`(?s)<b><span.*?>(.*?)<\/span><\/b>.*?href="(magnet:.+?)"><img`)
+	regex := regexp.MustCompile(`(?s)<span style=".*?font-family: 'arial' , 'helvetica' , sans-serif; font-size: large;">(?:<.*?>)*(.*?)(?:<\/b>|<br>|<\/span>).*?(magnet:.+?)"`)
 	matches := regex.FindAllStringSubmatch(string(html), -1)
 
 	var found FoundMagnetLinks
 
 	for _, match := range matches {
-		found = append(found, DownloadLink{match[2], match[1]})
+		found = append(found, DownloadLink{ht.UnescapeString(match[1]), match[2]})
 	}
 
 	return found

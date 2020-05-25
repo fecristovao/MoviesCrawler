@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	ht "golang.org/x/net/html"
 )
 
 type MegaTorrents struct{}
@@ -22,7 +23,7 @@ func (_ MegaTorrents) SearchMovie(Term string, Page int) FoundMovies {
 	matches := regex.FindAllStringSubmatch(string(html), -1)
 	var found FoundMovies
 	for _, match := range matches {
-		found = append(found, Movie{match[2], match[1], match[3]})
+		found = append(found, Movie{ht.UnescapeString(match[2]), match[1], match[3]})
 	}
 
 	return found
@@ -38,13 +39,13 @@ func (_ MegaTorrents) GetDownloadLinks(Link string) FoundMagnetLinks {
 
 	html := request.Get(Link)
 
-	regex := regexp.MustCompile(`<b><a href="(magnet:.+?)".*?>(.*?)<\/br>`)
+	regex := regexp.MustCompile(`(?ms)<.*?style=".*?color: #fff;.*?">(.*?)<.*?"(magnet:.+?)"`)
 	matches := regex.FindAllStringSubmatch(string(html), -1)
 
 	var found FoundMagnetLinks
 
 	for _, match := range matches {
-		found = append(found, DownloadLink{match[2], match[1]})
+		found = append(found, DownloadLink{ht.UnescapeString(match[1]), match[2]})
 	}
 
 	return found
